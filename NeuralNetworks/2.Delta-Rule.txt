@@ -1,47 +1,40 @@
 import numpy as np
 
-# Функция активации (например, сигмоида)
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
 
-# Производная функции активации
 def sigmoid_derivative(x):
     return x * (1 - x)
 
-# Класс нейронной сети
 class DeltaRuleNetwork:
     def __init__(self, input_size, learning_rate=0.1):
-        # Инициализация весов случайными значениями
+
         self.weights = np.random.rand(input_size)
         self.learning_rate = learning_rate
 
     def predict(self, inputs):
-        # Вычисление выхода нейрона
+
         return sigmoid(np.dot(inputs, self.weights))
 
     def train(self, inputs, target, epochs):
         for _ in range(epochs):
-            # Предсказание выхода
+
             output = self.predict(inputs)
-            # Вычисление ошибки
+
             error = target - output
-            # Корректировка весов с использованием дельта-правила
+
             delta = error * sigmoid_derivative(output)
             self.weights += self.learning_rate * delta * inputs
 
-# Пример использования
 if __name__ == "__main__":
-    # Данные для обучения
+
     inputs = np.array([0.1, 0.3, 0.5])  # Входные данные
     target = np.array([0.7])  # Желаемый выход
 
-    # Создание нейронной сети
     network = DeltaRuleNetwork(input_size=3)
 
-    # Обучение сети
     network.train(inputs, target, epochs=1000)
 
-    # Проверка работы сети
     test_input = np.array([0.1, 0.3, 0.5])
     prediction = network.predict(test_input)
     print(f"Предсказание сети: {prediction}")
