@@ -2,50 +2,27 @@ import numpy as np
 
 class RBFNetwork:
     def __init__(self, input_size, hidden_size, output_size):
-        """
-        Инициализация RBF-сети.
-        :param input_size: Размер входного слоя.
-        :param hidden_size: Количество нейронов в скрытом слое.
-        :param output_size: Размер выходного слоя.
-        """
+
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.output_size = output_size
 
-        # Инициализация центров и ширины радиально-базисных функций
         self.centers = np.random.rand(hidden_size, input_size)
         self.widths = np.random.rand(hidden_size)
 
-        # Инициализация весов выходного слоя
         self.weights = np.random.rand(hidden_size, output_size)
 
     def radial_basis_function(self, x, center, width):
-        """
-        Радиально-базисная функция (RBF).
-        :param x: Входной вектор.
-        :param center: Центр RBF.
-        :param width: Ширина RBF.
-        :return: Значение RBF.
-        """
+
         return np.exp(-np.linalg.norm(x - center) ** 2 / (2 * width ** 2))
 
     def predict(self, X):
-        """
-        Предсказание выхода сети.
-        :param X: Входной массив данных (n_samples, input_size).
-        :return: Выходной массив данных (n_samples, output_size).
-        """
+
         hidden_outputs = np.array([[self.radial_basis_function(x, center, width) for center, width in zip(self.centers, self.widths)] for x in X])
         return np.dot(hidden_outputs, self.weights)
 
     def train(self, X, y, learning_rate=0.01, epochs=1000):
-        """
-        Обучение RBF-сети.
-        :param X: Входной массив данных (n_samples, input_size).
-        :param y: Целевой массив данных (n_samples, output_size).
-        :param learning_rate: Скорость обучения.
-        :param epochs: Количество эпох обучения.
-        """
+
         for epoch in range(epochs):
             for i in range(len(X)):
                 # Прямое распространение
@@ -60,16 +37,13 @@ class RBFNetwork:
             if epoch % 100 == 0:
                 print(f"Epoch {epoch}, Error: {np.mean(np.abs(error))}")
 
-# Пример использования
 if __name__ == "__main__":
-    # Генерация данных
+
     X = np.random.rand(100, 2)  # 100 точек в 2D пространстве
     y = np.sin(X[:, 0] * 2 * np.pi) + np.cos(X[:, 1] * 2 * np.pi)  # Пример функции
 
-    # Создание и обучение RBF-сети
     rbf_network = RBFNetwork(input_size=2, hidden_size=10, output_size=1)
     rbf_network.train(X, y, learning_rate=0.01, epochs=1000)
 
-    # Предсказание
     predictions = rbf_network.predict(X)
     print("Predictions:", predictions)
