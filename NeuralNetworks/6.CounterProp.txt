@@ -5,9 +5,7 @@ from sklearn.model_selection import train_test_split
 
 class CounterpropagationNetwork:
     def __init__(self, input_size, hidden_size, output_size):
-        # Инициализация весов слоя Кохонена
         self.W1 = np.random.uniform(-1, 1, (input_size, hidden_size))
-        # Инициализация весов слоя Гроссберга
         self.W2 = np.random.uniform(-1, 1, (hidden_size, output_size))
         # Скорость обучения
         self.eta_kohonen = 0.01
@@ -22,7 +20,6 @@ class CounterpropagationNetwork:
 
     def train_grossberg(self, X, Y):
         for x, y in zip(X, Y):
-            # Вычисляем выход слоя Кохонена
             hidden_output = np.zeros(self.W1.shape[1])
             winner = np.argmin(np.linalg.norm(x[:, np.newaxis] - self.W1, axis=0))
             hidden_output[winner] = 1
@@ -41,37 +38,29 @@ class CounterpropagationNetwork:
             predictions.append(output)
         return np.array(predictions)
 
-# Загрузка датасета "Ирисы Фишера"
 iris = load_iris()
-X = iris.data  # Признаки
-y = iris.target.reshape(-1, 1)  # Метки классов
+X = iris.data
+y = iris.target.reshape(-1, 1)
 
-# Преобразуем метки в one-hot encoding
 encoder = OneHotEncoder(sparse_output=False)
 Y = encoder.fit_transform(y)
 
-# Нормализация данных
 X = X / np.max(X)
 
-# Разделение на обучающую и тестовую выборки
 X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
 
-# Создаем сеть
+
 cpn = CounterpropagationNetwork(input_size=4, hidden_size=10, output_size=3)
 
-# Обучаем сеть
 for _ in range(1000):
     cpn.train_kohonen(X_train)
     cpn.train_grossberg(X_train, Y_train)
 
-# Предсказываем на тестовой выборке
 predictions = cpn.predict(X_test)
 
-# Преобразуем предсказания обратно в метки классов
 predicted_labels = np.argmax(predictions, axis=1)
 true_labels = np.argmax(Y_test, axis=1)
 
-# Вывод результатов
 print("True labels:", true_labels)
 print("Predicted labels:", predicted_labels)
 
