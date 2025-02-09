@@ -1,0 +1,78 @@
+import numpy as np
+
+# Функция активации (сигмоида)
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+# Производная сигмоиды
+def sigmoid_derivative(x):
+    return x * (1 - x)
+
+# Класс нейронной сети
+class NeuralNetwork:
+    def __init__(self, input_size, hidden_size, output_size):
+        # Инициализация весов случайными значениями
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.output_size = output_size
+        
+        # Веса между входным и скрытым слоем
+        self.weights_input_hidden = np.random.rand(self.input_size, self.hidden_size)
+        
+        # Веса между скрытым и выходным слоем
+        self.weights_hidden_output = np.random.rand(self.hidden_size, self.output_size)
+        
+        # Смещения
+        self.bias_hidden = np.random.rand(1, self.hidden_size)
+        self.bias_output = np.random.rand(1, self.output_size)
+
+    def forward(self, X):
+        # Прямое распространение
+        self.hidden_input = np.dot(X, self.weights_input_hidden) + self.bias_hidden
+        self.hidden_output = sigmoid(self.hidden_input)
+        
+        self.output_input = np.dot(self.hidden_output, self.weights_hidden_output) + self.bias_output
+        self.output = sigmoid(self.output_input)
+        
+        return self.output
+
+    def backward(self, X, y, learning_rate):
+        # Обратное распространение ошибки
+        error_output = y - self.output
+        d_output = error_output * sigmoid_derivative(self.output)
+        
+        error_hidden = d_output.dot(self.weights_hidden_output.T)
+        d_hidden = error_hidden * sigmoid_derivative(self.hidden_output)
+        
+        # Обновление весов и смещений
+        self.weights_hidden_output += self.hidden_output.T.dot(d_output) * learning_rate
+        self.bias_output += np.sum(d_output, axis=0, keepdims=True) * learning_rate
+        
+        self.weights_input_hidden += X.T.dot(d_hidden) * learning_rate
+        self.bias_hidden += np.sum(d_hidden, axis=0, keepdims=True) * learning_rate
+
+    def train(self, X, y, epochs, learning_rate):
+        for epoch in range(epochs):
+            output = self.forward(X)
+            self.backward(X, y, learning_rate)
+            
+            # Вывод ошибки для отслеживания обучения
+            if epoch % 1000 == 0:
+                loss = np.mean(np.square(y - output))
+                print(f"Epoch {epoch}, Loss: {loss}")
+
+# Пример использования
+if __name__ == "__main__":
+    # Пример данных
+    X = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
+    y = np.array([[0], [1], [1], [0]])  # Простая задача XOR
+
+    # Создание нейронной сети
+    nn = NeuralNetwork(input_size=2, hidden_size=3, output_size=1)
+
+    # Обучение сети
+    nn.train(X, y, epochs=10000, learning_rate=0.1)
+
+    # Проверка работы сети
+    predictions = nn.forward(X)
+    print("Predictions:", predictions)

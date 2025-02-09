@@ -1,0 +1,110 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.datasets import make_blobs
+
+class SOM:
+    def __init__(self, input_size, map_size, learning_rate=0.5, sigma=1.0, max_iter=1000):
+        """
+        Инициализация SOM.
+        
+        :param input_size: Размерность входных данных.
+        :param map_size: Размер карты (ширина, высота).
+        :param learning_rate: Скорость обучения.
+        :param sigma: Радиус окрестности.
+        :param max_iter: Максимальное количество итераций обучения.
+        """
+        self.input_size = input_size
+        self.map_size = map_size
+        self.learning_rate = learning_rate
+        self.sigma = sigma
+        self.max_iter = max_iter
+        
+        # Инициализация весов случайными значениями
+        self.weights = np.random.rand(map_size[0], map_size[1], input_size)
+    
+    def find_bmu(self, input_vector):
+        """
+        Найти Best Matching Unit (BMU) — узел с минимальным расстоянием до входного вектора.
+        
+        :param input_vector: Входной вектор.
+        :return: Координаты BMU.
+        """
+        distances = np.linalg.norm(self.weights - input_vector, axis=2)
+        return np.unravel_index(np.argmin(distances), distances.shape)
+    
+    def train(self, data):
+        """
+        Обучение SOM.
+        
+        :param data: Набор входных данных.
+        """
+        for iteration in range(self.max_iter):
+            # Уменьшение скорости обучения и радиуса окрестности
+            lr = self.learning_rate * (1 - iteration / self.max_iter)
+            sig = self.sigma * (1 - iteration / self.max_iter)
+            
+            # Выбор случайного входного вектора
+            input_vector = data[np.random.randint(0, len(data))]
+            
+            # Поиск BMU
+            bmu_i, bmu_j = self.find_bmu(input_vector)
+            
+            # Обновление весов
+            for i in range(self.map_size[0]):
+                for j in range(self.map_size[1]):
+                    # Расстояние до BMU
+                    dist_to_bmu = np.linalg.norm([i - bmu_i, j - bmu_j])
+                    
+                    # Функция окрестности
+                    neighborhood = np.exp(-dist_to_bmu**2 / (2 * sig**2))
+                    
+                    # Обновление весов
+                    self.weights[i, j] += lr * neighborhood * (input_vector - self.weights[i, j])
+    
+    def predict(self, input_vector):
+        """
+        Определить BMU для входного вектора.
+        
+        :param input_vector: Входной вектор.
+        :return: Координаты BMU.
+        """
+        return self.find_bmu(input_vector)
+
+# Пример использования
+if __name__ == "__main__":
+    # Создание данных с использованием make_blobs
+    data, labels = make_blobs(n_samples=100, centers=3, n_features=2, random_state=42)
+    
+    # Создание SOM
+    som = SOM(input_size=2, map_size=(10, 10), learning_rate=0.5, sigma=2.0, max_iter=1000)
+    
+    # Обучение SOM
+    som.train(data)
+    
+    # Визуализация данных и карты весов
+    plt.figure(figsize=(12, 6))
+    
+    # Данные
+    plt.subplot(1, 2, 1)
+    plt.scatter(data[:, 0], data[:, 1], c=labels, cmap='viridis', s=50)
+    plt.title("Исходные данные")
+    plt.xlabel("X1")
+    plt.ylabel("X2")
+    
+    # Карта весов
+    plt.subplot(1, 2, 2)
+    for i in range(som.map_size[0]):
+        for j in range(som.map_size[1]):
+            plt.plot(som.weights[i, j, 0], som.weights[i, j, 1], 'ko', markersize=5)
+            if i < som.map_size[0] - 1:
+                plt.plot([som.weights[i, j, 0], som.weights[i + 1, j, 0]],
+                         [som.weights[i, j, 1], som.weights[i + 1, j, 1]], 'k-')
+            if j < som.map_size[1] - 1:
+                plt.plot([som.weights[i, j, 0], som.weights[i, j + 1, 0]],
+                         [som.weights[i, j, 1], som.weights[i, j + 1, 1]], 'k-')
+    plt.title("Карта весов SOM")
+    plt.xlabel("X1")
+    plt.ylabel("X2")
+    
+    plt.tight_layout()
+    plt.show()

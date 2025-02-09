@@ -1,0 +1,30 @@
+import numpy as np
+
+# Шаг 1: Определение входных данных
+# Предположим, что у нас есть 4 входных вектора
+X = np.array([[1, 0, 1, 0],
+              [0, 1, 0, 1],
+              [1, 1, 0, 0],
+              [0, 0, 1, 1]])
+
+# Шаг 2: Инициализация весов
+# Начальные веса будут случайными значениями
+np.random.seed(0)
+weights = np.random.rand(4)
+
+# Шаг 3: Обучение по правилам Хебба
+learning_rate = 0.1
+epochs = 100
+
+for epoch in range(epochs):
+    for i in range(X.shape[0]):
+        input_vector = X[i]
+        output = np.dot(input_vector, weights)
+        # Обновление весов по правилам Хебба
+        weights += learning_rate * input_vector * output
+
+# Шаг 4: Тестирование
+test_input = np.array([1, 0, 1, 0])
+test_output = np.dot(test_input, weights)
+print("Веса после обучения:", weights)
+print("Реакция на тестовый вход [1, 0, 1, 0]:", test_output)

@@ -1,0 +1,138 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.datasets import load_digits
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
+
+# Функция активации ReLU
+def relu(x):
+    return np.maximum(0, x)
+
+# Производная ReLU
+def relu_derivative(x):
+    return (x > 0).astype(float)
+
+# Сверточный слой
+class ConvLayer:
+    def __init__(self, input_channels, output_channels, kernel_size, stride=1, padding=0):
+        self.input_channels = input_channels
+        self.output_channels = output_channels
+        self.kernel_size = kernel_size
+        self.stride = stride
+        self.padding = padding
+        
+        # Инициализация весов и смещений
+        self.weights = np.random.randn(output_channels, input_channels, kernel_size, kernel_size) * 0.01
+        self.biases = np.zeros((output_channels, 1))
+
+    def forward(self, input):
+        batch_size, _, input_height, input_width = input.shape
+        output_height = (input_height - self.kernel_size + 2 * self.padding) // self.stride + 1
+        output_width = (input_width - self.kernel_size + 2 * self.padding) // self.stride + 1
+        
+        # Добавление паддинга
+        input_padded = np.pad(input, ((0, 0), (0, 0), (self.padding, self.padding), (self.padding, self.padding)), mode='constant')
+        
+        # Инициализация выходного тензора
+        output = np.zeros((batch_size, self.output_channels, output_height, output_width))
+        
+        # Свертка
+        for b in range(batch_size):
+            for c_out in range(self.output_channels):
+                for h in range(output_height):
+                    for w in range(output_width):
+                        h_start = h * self.stride
+                        w_start = w * self.stride
+                        h_end = h_start + self.kernel_size
+                        w_end = w_start + self.kernel_size
+                        output[b, c_out, h, w] = np.sum(input_padded[b, :, h_start:h_end, w_start:w_end] * self.weights[c_out]) + self.biases[c_out]
+        
+        return output
+
+# Слой подвыборки (максимальный пуллинг)
+class MaxPoolLayer:
+    def __init__(self, pool_size, stride):
+        self.pool_size = pool_size
+        self.stride = stride
+
+    def forward(self, input):
+        batch_size, channels, input_height, input_width = input.shape
+        output_height = (input_height - self.pool_size) // self.stride + 1
+        output_width = (input_width - self.pool_size) // self.stride + 1
+        
+        output = np.zeros((batch_size, channels, output_height, output_width))
+        
+        for b in range(batch_size):
+            for c in range(channels):
+                for h in range(output_height):
+                    for w in range(output_width):
+                        h_start = h * self.stride
+                        w_start = w * self.stride
+                        h_end = h_start + self.pool_size
+                        w_end = w_start + self.pool_size
+                        output[b, c, h, w] = np.max(input[b, c, h_start:h_end, w_start:w_end])
+        
+        return output
+
+# Полносвязный слой
+class FullyConnectedLayer:
+    def __init__(self, input_size, output_size):
+        self.weights = np.random.randn(input_size, output_size) * 0.01
+        self.biases = np.zeros((1, output_size))
+
+    def forward(self, input):
+        return np.dot(input, self.weights) + self.biases
+
+# Функция потерь (кросс-энтропия)
+def cross_entropy_loss(predictions, labels):
+    epsilon = 1e-15
+    predictions = np.clip(predictions, epsilon, 1 - epsilon)
+    return -np.mean(labels * np.log(predictions) + (1 - labels) * np.log(1 - predictions))
+
+# Функция для визуализации изображений
+def visualize_images(images, titles, n_cols=5, figsize=(10, 5)):
+    n_rows = (len(images) + n_cols - 1) // n_cols
+    plt.figure(figsize=figsize)
+    for i, (img, title) in enumerate(zip(images, titles)):
+        plt.subplot(n_rows, n_cols, i + 1)
+        plt.imshow(img, cmap='gray')
+        plt.title(title)
+        plt.axis('off')
+    plt.tight_layout()
+    plt.show()
+
+# Загрузка данных
+digits = load_digits()
+X = digits.data.reshape(-1, 1, 8, 8)  # Приведение данных к формату (batch, channels, height, width)
+y = digits.target.reshape(-1, 1)
+
+# Преобразование меток в one-hot encoding
+encoder = OneHotEncoder(sparse_output=False)
+y_onehot = encoder.fit_transform(y)
+
+# Разделение данных на обучающую и тестовую выборки
+X_train, X_test, y_train, y_test = train_test_split(X, y_onehot, test_size=0.2, random_state=42)
+
+# Создание слоев
+conv_layer = ConvLayer(input_channels=1, output_channels=8, kernel_size=3, stride=1, padding=1)
+pool_layer = MaxPoolLayer(pool_size=2, stride=2)
+fc_layer = FullyConnectedLayer(input_size=8 * 4 * 4, output_size=10)
+
+# Прямой проход для тестового изображения
+test_image = X_test[0:1]  # Берем одно изображение
+conv_output = conv_layer.forward(test_image)
+conv_output_relu = relu(conv_output)
+pool_output = pool_layer.forward(conv_output_relu)
+pool_output_flat = pool_output.reshape(pool_output.shape[0], -1)
+fc_output = fc_layer.forward(pool_output_flat)
+
+# Визуализация
+visualize_images(
+    [test_image[0, 0], conv_output_relu[0, 0], pool_output[0, 0]],
+    titles=["Original Image", "After Conv + ReLU", "After Pooling"]
+)
+
+# Вывод предсказания
+predicted_class = np.argmax(fc_output)
+print(f"Predicted class: {predicted_class}")
+print(f"True class: {np.argmax(y_test[0])}")
